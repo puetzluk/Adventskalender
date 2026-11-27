@@ -824,3 +824,53 @@ body.dbg-blass .haus-bild {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
 }
+
+/* --------------------------------------------------------------------------
+   Licht aus (Zugschnur): Lichterkette, Haus, offene Türchen, Baumlichter und Mond
+   -------------------------------------------------------------------------- */
+.haus-bild--dunkel {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+body.lichter-aus .haus-bild--dunkel {
+  opacity: 1;
+}
+
+/* Baumlichter und Sterne */
+.baum-licht,
+.baum-stern {
+  transition: opacity 0.7s ease;
+}
+
+body.lichter-aus .baum-licht .glanz,
+body.lichter-aus .baum-stern > circle {
+  opacity: 0;
+  animation: none;
+}
+
+body.lichter-aus .baum-licht {
+  opacity: 0.45;
+}
+
+body.lichter-aus .baum-stern {
+  opacity: 0.55;
+  animation: none;
+}
+
+/* Mond: kaum noch zu sehen, ohne Schein */
+.mond,
+.mond-schein {
+  transition: opacity 0.9s ease, filter 0.9s ease;
+}
+
+body.lichter-aus .mond {
+  opacity: 0.22;
+  filter: grayscale(0.7) brightness(0.75);
+}
+
+body.lichter-aus .mond-schein {
+  opacity: 0;
+}

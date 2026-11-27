@@ -92,6 +92,9 @@ export function starteLichterkette(kopf, { reduziert = false } = {}) {
     schnur.setAttribute('aria-checked', String(an));
     schnur.setAttribute('aria-label', an ? 'Lichterkette ausschalten' : 'Lichterkette einschalten');
     document.body.classList.toggle('lichter-an', an);
+    // „lichter-aus“ schaltet auch Haus, offene Türchen, Baumlichter und Mond aus (siehe CSS).
+    // Eigene Klasse, damit beim Laden (bevor dieses Skript läuft) alles hell bleibt.
+    document.body.classList.toggle('lichter-aus', !an);
   }
   function umschalten() {
     an = !an;
