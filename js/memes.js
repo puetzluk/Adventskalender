@@ -13,6 +13,8 @@
 import { speicher } from './speicher.js';
 import { fehlerton } from './klang.js';
 
+const YT = 'https://www.youtube-nocookie.com';
+
 const el = (tag, klasse, text) => {
   const e = document.createElement(tag);
   if (klasse) e.className = klasse;
@@ -71,16 +73,28 @@ export function starteMemes({ bilder = [], videos = [], reduziert = false, beiVi
       huelle.append(v);
       v.play().catch(() => {}); // klappt nach dem Antippen meist mit Ton; sonst Play-Knopf im Video
     } else {
-      const p = new URLSearchParams({ autoplay: '1', playsinline: '1', rel: '0', modestbranding: '1' });
+      const p = new URLSearchParams({
+        autoplay: '1', playsinline: '1', rel: '0', modestbranding: '1',
+        enablejsapi: '1', origin: location.origin,
+      });
       if (meme.start) p.set('start', String(meme.start));
       if (meme.ende) p.set('end', String(meme.ende));
       const f = el('iframe');
-      f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(meme.id)}?${p}`;
+      f.src = `${YT}/embed/${encodeURIComponent(meme.id)}?${p}`;
       f.title = meme.titel || 'Video-Meme';
       f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
       f.allowFullscreen = true;
       // Die Seite schickt sonst keinen Referrer mit – YouTube-Einbettungen brauchen ihn aber
       f.referrerPolicy = 'strict-origin-when-cross-origin';
+      // Manche Browser starten eingebettete Videos stumm → Ton ausdrücklich einschalten.
+      // (Erlaubt der Browser das nicht, zeigt YouTube selbst einen Knopf zum Einschalten.)
+      const senden = (func, args = []) =>
+        f.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), YT);
+      f.addEventListener('load', () => {
+        for (const ms of [300, 900, 1800, 3000]) {
+          setTimeout(() => { senden('unMute'); senden('setVolume', [100]); senden('playVideo'); }, ms);
+        }
+      });
       huelle.append(f);
     }
     return huelle;
