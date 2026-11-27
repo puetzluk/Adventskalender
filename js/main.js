@@ -111,6 +111,19 @@ function zeigeTestleiste(simulierterTag, memes) {
     <button type="button" class="test-meme">Meme</button>
     <button type="button" class="test-reset">Zurücksetzen</button>`;
   leiste.querySelector('.test-sturm').addEventListener('click', () => sturm.ausloesen());
+
+  // Sensor-Anzeige (nur im Testmodus): zeigt, ob das Handy Bewegungsdaten liefert
+  // und wie stark gerade geschüttelt wird (ab 12 löst ein Ausschlag aus, zwei davon = Sturm)
+  const sensorInfo = document.createElement('div');
+  sensorInfo.className = 'test-sensor';
+  document.body.append(sensorInfo);
+  setInterval(() => {
+    const s = sturm.sensor;
+    sensorInfo.textContent = s.status === 'aktiv'
+      ? `Sensor aktiv · Schütteln: ${Math.round(s.spitze)} (Sturm ab 12)`
+      : `Sensor: ${s.status}`;
+    sensorInfo.classList.toggle('stark', s.status === 'aktiv' && s.spitze >= 12);
+  }, 250);
   leiste.querySelector('.test-meme').addEventListener('click', () => {
     if (!document.body.classList.contains('meme-offen')) memes.zeigen({ nr: 24, text: 'Noch 23 Tage bis Türchen 24! (Test)' });
   });
@@ -159,12 +172,10 @@ function zeigeTestleiste(simulierterTag, memes) {
   });
   if (testmodus) zeigeTestleiste(simulierterTag, memes);
 
-  // Schütteln: beim ersten Antippen die Bewegungssensoren freischalten (iPhone fragt einmal nach)
-  const sensorenFreischalten = () => {
-    sturm.bewegungErlauben();
-    window.removeEventListener('click', sensorenFreischalten, true);
-    window.removeEventListener('touchend', sensorenFreischalten, true);
-  };
-  window.addEventListener('click', sensorenFreischalten, true);
-  window.addEventListener('touchend', sensorenFreischalten, true);
+  // Schütteln: Bewegungssensoren freischalten. Android & Co. sofort; das iPhone braucht
+  // dafür ein Antippen und fragt dann einmal nach – deshalb bei jedem Tippen erneut versuchen,
+  // bis es geklappt hat (bewegungErlauben() tut danach nichts mehr).
+  sturm.bewegungErlauben();
+  window.addEventListener('click', () => sturm.bewegungErlauben(), true);
+  window.addEventListener('touchend', () => sturm.bewegungErlauben(), true);
 })();

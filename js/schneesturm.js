@@ -136,24 +136,43 @@ export function starteSchneesturm({ reduziert = false, istBlockiert = () => fals
     canvas.classList.add('an');
     document.body.classList.add('schneesturm');
     sturmwind(DAUER, staerke);
-    navigator.vibrate?.([60, 80, 40]);
+    if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.([60, 80, 40]);
     requestAnimationFrame(bild);
     return true;
   }
 
   // --- Schütteln erkennen ---------------------------------------------------------
-  let spitzen = [];
+  // Gemessen wird, wie weit die Beschleunigung vom ruhigen Mittelwert abweicht
+  // (unabhängig davon, wie oft das Handy misst). Zwei kräftige Ausschläge
+  // innerhalb gut einer Sekunde = Schütteln.
+  const SCHWELLE = 12; // m/s² – kräftiges Schütteln erreicht meist 15–30
+  const sensor = { status: 'unbekannt', messungen: 0, spitze: 0 }; // für die Anzeige im Testmodus
+  let spitzen = [], basis = null, spitzeZeit = 0;
+
   function bewegung(e) {
-    const a = e.accelerationIncludingGravity || e.acceleration;
-    if (!a || a.x == null) return;
+    const mit = e.accelerationIncludingGravity;
+    const ohne = e.acceleration;
+    const a = mit && mit.x != null ? mit : ohne && ohne.x != null ? ohne : null;
+    if (!a) return;
+    sensor.status = 'aktiv';
+    sensor.messungen++;
     const jetzt = performance.now();
-    const betrag = Math.hypot(a.x, a.y, a.z);
-    // Kräftiger Ausschlag (deutlich mehr oder weniger als die Erdanziehung)
-    if (Math.abs(betrag - 9.81) > 11 && (!spitzen.length || jetzt - spitzen[spitzen.length - 1] > 90)) {
-      spitzen.push(jetzt);
-    }
-    spitzen = spitzen.filter((z) => jetzt - z < 1200);
-    if (spitzen.length >= 3) {
+    if (!basis) basis = { x: a.x, y: a.y, z: a.z };
+    const abweichung = Math.hypot(a.x - basis.x, a.y - basis.y, a.z - basis.z);
+    // ruhiger Mittelwert (enthält die Erdanziehung und die Haltung des Handys)
+    basis.x += (a.x - basis.x) * 0.08;
+    basis.y += (a.y - basis.y) * 0.08;
+    basis.z += (a.z - basis.z) * 0.08;
+    // falls das Gerät auch die reine Bewegung ohne Erdanziehung liefert
+    const stoss = ohne && ohne.x != null ? Math.hypot(ohne.x, ohne.y, ohne.z) : 0;
+    const wert = Math.max(abweichung, stoss);
+
+    if (jetzt - spitzeZeit > 1500) sensor.spitze = 0;
+    if (wert > sensor.spitze) { sensor.spitze = wert; spitzeZeit = jetzt; }
+
+    if (wert > SCHWELLE && (!spitzen.length || jetzt - spitzen[spitzen.length - 1] > 150)) spitzen.push(jetzt);
+    spitzen = spitzen.filter((z) => jetzt - z < 1100);
+    if (spitzen.length >= 2) {
       spitzen = [];
       ausloesen();
     }
@@ -163,19 +182,29 @@ export function starteSchneesturm({ reduziert = false, istBlockiert = () => fals
   function lauschen() {
     if (lauscht) return;
     lauscht = true;
+    sensor.status = 'wartet auf Daten';
     window.addEventListener('devicemotion', bewegung, { passive: true });
+    // Manche Browser (z. B. mit strengem Datenschutz) liefern gar keine Messwerte
+    setTimeout(() => { if (!sensor.messungen) sensor.status = 'keine Daten'; }, 3000);
   }
 
   /**
-   * Muss bei einer Berührung (click/touchend) aufgerufen werden: iPhone fragt dann
-   * einmal nach der Erlaubnis für Bewegungssensoren, andere Geräte lauschen sofort.
+   * Sensoren freischalten. Auf dem iPhone muss das bei einer Berührung (click/touchend)
+   * passieren, dann fragt Safari einmal nach. Darf beliebig oft aufgerufen werden –
+   * klappt es nicht, wird es beim nächsten Antippen erneut versucht.
    */
   function bewegungErlauben() {
-    if (lauscht || !('DeviceMotionEvent' in window) || !window.isSecureContext) return;
+    if (lauscht || sensor.status === 'abgelehnt' || sensor.status === 'fragt') return;
+    if (!('DeviceMotionEvent' in window)) { sensor.status = 'nicht vorhanden'; return; }
+    if (!window.isSecureContext) { sensor.status = 'nur über https'; return; }
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      sensor.status = 'fragt';
       DeviceMotionEvent.requestPermission()
-        .then((antwort) => { if (antwort === 'granted') lauschen(); })
-        .catch(() => {});
+        .then((antwort) => {
+          if (antwort === 'granted') lauschen();
+          else sensor.status = 'abgelehnt';
+        })
+        .catch(() => { sensor.status = 'tippen nötig'; }); // nicht aus einer Berührung → beim nächsten Tippen
     } else {
       lauschen();
     }
@@ -184,5 +213,5 @@ export function starteSchneesturm({ reduziert = false, istBlockiert = () => fals
   window.addEventListener('resize', () => { if (aktiv) groesse(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && aktiv) beenden(); });
 
-  return { ausloesen, bewegungErlauben, get aktiv() { return aktiv; } };
+  return { ausloesen, bewegungErlauben, sensor, get aktiv() { return aktiv; } };
 }
