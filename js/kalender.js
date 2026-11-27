@@ -4,6 +4,7 @@
  *  - Dezember 2026, Datum vom Gerät (lokale Zeit).
  *  - Türchen N ab dem N. Dezember; verpasste Tage bleiben nachholbar; nach dem 24. ist alles offen.
  *  - Zu früh: Türchen wackelt und zeigt „Noch 3 Tage!“ (vor dem 1.12.: „Ab dem 1. Dezember geht's los“).
+ *    Etwa jeder 2.–3. Versuch bringt stattdessen ein Meme im Windows-Fenster (js/memes.js).
  *  - Öffnen: Türblatt klappt in 3D auf (pro Tag fest: links, rechts oder oben), Glöckchen,
  *    danach zufällig „Flug durchs Türchen“ oder „Brief“. Schließen spielt alles rückwärts ab.
  */
@@ -53,9 +54,14 @@ class Ablauf {
   }
 }
 
-export function starteKalender({ haus, inhalte, testmodus, simulierterTag, welt, himmel, ebene, reduziert, festeVariante = null }) {
+export function starteKalender({ haus, inhalte, testmodus, simulierterTag, welt, himmel, ebene, reduziert, festeVariante = null, memes = null }) {
   const offen = new Set(speicher.get('offen', []));
   let beschaeftigt = false;
+
+  // Memes bei gesperrten Türchen: etwa jeder 2. bis 3. Versuch (sonst Sprechblase)
+  let gesperrtVersuche = 0;
+  const neueMemeSchwelle = () => 2 + (Math.random() < 0.5 ? 0 : 1);
+  let memeSchwelle = neueMemeSchwelle();
 
   const richtung = (nr) => RICHTUNGEN[(nr - 1) % 3];
 
@@ -73,6 +79,13 @@ export function starteKalender({ haus, inhalte, testmodus, simulierterTag, welt,
     if (h.vorDezember) return "Ab dem 1. Dezember geht's los";
     const rest = nr - h.tag;
     return rest === 1 ? 'Morgen ist es so weit!' : `Noch ${rest} Tage!`;
+  }
+  /** Längere Fassung für das Meme-Fenster */
+  function memeText(nr) {
+    const h = heute();
+    if (h.vorDezember) return "Ab dem 1. Dezember geht's los!";
+    const rest = nr - h.tag;
+    return rest === 1 ? `Türchen ${nr} gibt's morgen!` : `Noch ${rest} Tage bis Türchen ${nr}!`;
   }
 
   // --- Türblatt und Nische ------------------------------------------------------
@@ -341,6 +354,19 @@ export function starteKalender({ haus, inhalte, testmodus, simulierterTag, welt,
     if (beschaeftigt) return;
     if (!darfOeffnen(nr)) {
       wackeln(nr);
+      gesperrtVersuche++;
+      if (memes?.anzahl && gesperrtVersuche >= memeSchwelle) {
+        gesperrtVersuche = 0;
+        memeSchwelle = neueMemeSchwelle();
+        beschaeftigt = true;
+        try {
+          await memes.zeigen({ nr, text: memeText(nr) });
+        } finally {
+          beschaeftigt = false;
+          haus.elemente.get(nr).knopf.focus({ preventScroll: true });
+        }
+        return;
+      }
       hinweis(nr, hinweisText(nr));
       return;
     }

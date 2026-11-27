@@ -4,6 +4,7 @@
  *   ?test=CODEWORT → Testmodus: alle Türchen öffenbar, Knopf „Alles zurücksetzen“
  *   ?test=CODEWORT&datum=2026-12-05 → Testmodus mit vorgetäuschtem Datum
  *   ?test=CODEWORT&variante=flug     → immer „Flug durchs Türchen“ (oder: variante=brief)
+ * In der Testleiste lassen sich Schneesturm und ein Meme direkt auslösen.
  */
 import { bauHaus } from './haus.js';
 import { starteHimmel } from './himmel.js';
@@ -13,6 +14,9 @@ import { entsperren, musik, tonPausieren } from './klang.js';
 import { speicher } from './speicher.js';
 import { istCodewort, zeigeCodewort } from './codewort.js';
 import { starteKalender } from './kalender.js';
+import { starteMemes } from './memes.js';
+import { VIDEOS } from './meme-videos.js';
+import { starteSchneesturm } from './schneesturm.js';
 
 const parameter = new URLSearchParams(location.search);
 const debug = parameter.has('debug');
@@ -65,27 +69,52 @@ for (const typ of ['pointerdown', 'touchend', 'click', 'keydown']) {
 }
 document.addEventListener('visibilitychange', () => tonPausieren(document.hidden));
 
+// --- Schneesturm (Handy schütteln) -------------------------------------------------
+const sturm = starteSchneesturm({
+  reduziert,
+  istBlockiert: () => document.body.classList.contains('karte-offen') || !!document.querySelector('.codewort'),
+});
+
 // --- Inhalte ----------------------------------------------------------------------
 async function ladeInhalte() {
   try {
-    const { DATEN } = await import('./inhalte-verpackt.js');
+    const { DATEN, MEMES = [] } = await import('./inhalte-verpackt.js');
     const bytes = Uint8Array.from(atob(DATEN.split('').reverse().join('')), (z) => z.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
+    return { inhalte: JSON.parse(new TextDecoder().decode(bytes)), memeBilder: MEMES };
   } catch (fehler) {
     console.error('Inhalte konnten nicht geladen werden:', fehler);
-    return Array.from({ length: 24 }, () => ({ typ: 'spruch', text: 'Hier fehlt noch der Inhalt.' }));
+    return { inhalte: Array.from({ length: 24 }, () => ({ typ: 'spruch', text: 'Hier fehlt noch der Inhalt.' })), memeBilder: [] };
+  }
+}
+
+// Während ein Video-Meme läuft, macht die Spieluhr Pause
+let musikPausiertFuerVideo = false;
+function beiVideo(laeuft) {
+  if (laeuft && musik.laeuft) {
+    musikPausiertFuerVideo = true;
+    musik.stop();
+  } else if (!laeuft && musikPausiertFuerVideo) {
+    musikPausiertFuerVideo = false;
+    if (musikAn) musik.start();
   }
 }
 
 // --- Testmodus ----------------------------------------------------------------------
-function zeigeTestleiste(simulierterTag) {
+function zeigeTestleiste(simulierterTag, memes) {
   const leiste = document.createElement('div');
   leiste.className = 'testleiste';
   const info = simulierterTag
-    ? `Testmodus · Datum: ${simulierterTag.toLocaleDateString('de-DE')}`
-    : 'Testmodus · alle Türchen offen';
-  leiste.innerHTML = `<span>${info}</span><button type="button">Alles zurücksetzen</button>`;
-  leiste.querySelector('button').addEventListener('click', () => {
+    ? `Test · ${simulierterTag.toLocaleDateString('de-DE')}`
+    : 'Testmodus';
+  leiste.innerHTML = `<span>${info}</span>
+    <button type="button" class="test-sturm">Sturm</button>
+    <button type="button" class="test-meme">Meme</button>
+    <button type="button" class="test-reset">Zurücksetzen</button>`;
+  leiste.querySelector('.test-sturm').addEventListener('click', () => sturm.ausloesen());
+  leiste.querySelector('.test-meme').addEventListener('click', () => {
+    if (!document.body.classList.contains('meme-offen')) memes.zeigen({ nr: 24, text: 'Noch 23 Tage bis Türchen 24! (Test)' });
+  });
+  leiste.querySelector('.test-reset').addEventListener('click', () => {
     if (!confirm('Alle geöffneten Türchen, das Codewort und die Einstellungen zurücksetzen?')) return;
     speicher.allesLoeschen();
     location.reload();
@@ -114,7 +143,8 @@ function zeigeTestleiste(simulierterTag) {
     if (!Number.isNaN(d.getTime())) simulierterTag = d;
   }
 
-  const inhalte = await ladeInhalte();
+  const { inhalte, memeBilder } = await ladeInhalte();
+  const memes = starteMemes({ bilder: memeBilder, videos: VIDEOS, reduziert, beiVideo });
   kalender = starteKalender({
     haus,
     inhalte,
@@ -125,6 +155,16 @@ function zeigeTestleiste(simulierterTag) {
     ebene: document.getElementById('vorhang-ebene'),
     reduziert,
     festeVariante: testmodus ? parameter.get('variante') : null,
+    memes,
   });
-  if (testmodus) zeigeTestleiste(simulierterTag);
+  if (testmodus) zeigeTestleiste(simulierterTag, memes);
+
+  // Schütteln: beim ersten Antippen die Bewegungssensoren freischalten (iPhone fragt einmal nach)
+  const sensorenFreischalten = () => {
+    sturm.bewegungErlauben();
+    window.removeEventListener('click', sensorenFreischalten, true);
+    window.removeEventListener('touchend', sensorenFreischalten, true);
+  };
+  window.addEventListener('click', sensorenFreischalten, true);
+  window.addEventListener('touchend', sensorenFreischalten, true);
 })();

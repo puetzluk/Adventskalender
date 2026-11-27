@@ -2,6 +2,8 @@
  * Klänge – alles selbst erzeugt mit der Web Audio API, keine Audiodateien.
  *  - klick():        leises „Klick“ der Zugschnur
  *  - gloeckchen():   kurzer Glöckchenklang beim Öffnen eines Türchens
+ *  - fehlerton():    „Zugriff verweigert“-Ton zum Meme-Fenster
+ *  - sturmwind():    Windrauschen beim Schneesturm
  *  - musik:          Spieluhr mit gemeinfreien Melodien (Jingle Bells, O Tannenbaum, Stille Nacht)
  * Browser erlauben Ton erst nach einer Berührung/einem Klick → entsperren() dort aufrufen.
  */
@@ -120,6 +122,64 @@ export function gloeckchen() {
   glocke(2093, t + 0.11, 0.055); // C7
   glocke(2637, t + 0.22, 0.045); // E7
   glocke(2093, t + 0.42, 0.03);
+}
+
+// ---------------------------------------------------------------------------
+// Fehlerton (Meme-Fenster): zwei kurze, weiche Töne wie bei einer Computer-Meldung
+// ---------------------------------------------------------------------------
+export function fehlerton() {
+  if (!entsperren()) return;
+  const t = ctx.currentTime + 0.01;
+  for (const [f, start] of [[880, 0], [660, 0.13]]) {
+    const o = ctx.createOscillator();
+    o.type = 'triangle';
+    o.frequency.value = f;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t + start);
+    g.gain.linearRampToValueAtTime(0.12, t + start + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + start + 0.32);
+    o.connect(g);
+    verbinde(g, 0.3);
+    o.start(t + start);
+    o.stop(t + start + 0.35);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Wind (Schneesturm): gefiltertes Rauschen, Lautstärke folgt der Sturmstärke
+//   sturmwind(dauer, staerke) – staerke(t) liefert 0…1 für t = 0…dauer Sekunden
+// ---------------------------------------------------------------------------
+export function sturmwind(dauer, staerke) {
+  if (!entsperren()) return;
+  const t0 = ctx.currentTime + 0.02;
+  const laenge = Math.round(ctx.sampleRate * 2);
+  const puffer = ctx.createBuffer(1, laenge, ctx.sampleRate);
+  const d = puffer.getChannelData(0);
+  let braun = 0;
+  for (let i = 0; i < laenge; i++) { // „braunes“ Rauschen klingt weicher, mehr nach Wind
+    braun = (braun + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+    d[i] = braun * 3.2;
+  }
+  const quelle = ctx.createBufferSource();
+  quelle.buffer = puffer;
+  quelle.loop = true;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.Q.value = 0.8;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, t0);
+  // Hüllkurve und Filter in kleinen Schritten an die Sturmstärke anpassen (mit Böen)
+  for (let s = 0; s <= dauer; s += 0.25) {
+    const st = staerke(s);
+    const boe = 0.75 + 0.25 * Math.sin(s * 2.3) * Math.sin(s * 0.9 + 1);
+    g.gain.linearRampToValueAtTime(0.32 * st * boe, t0 + s);
+    filter.frequency.linearRampToValueAtTime(320 + 900 * st * boe, t0 + s);
+  }
+  g.gain.linearRampToValueAtTime(0, t0 + dauer + 0.3);
+  quelle.connect(filter).connect(g);
+  verbinde(g, 0.4);
+  quelle.start(t0);
+  quelle.stop(t0 + dauer + 0.5);
 }
 
 // ---------------------------------------------------------------------------

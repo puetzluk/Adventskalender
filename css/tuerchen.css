@@ -732,9 +732,9 @@
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   max-width: calc(100vw - 16px);
-  padding: 5px 5px 5px 14px;
+  padding: 5px 5px 5px 12px;
   border: 1px solid rgba(246, 200, 106, 0.5);
   border-radius: 999px;
   background: rgba(10, 14, 32, 0.88);
@@ -745,11 +745,185 @@
 
 .testleiste button {
   min-height: 36px;
-  padding: 8px 14px;
+  padding: 8px 11px;
   border: 0;
   border-radius: 999px;
   background: var(--rot);
   color: #fff;
   font: inherit;
   cursor: pointer;
+}
+
+.testleiste .test-sturm,
+.testleiste .test-meme {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* --------------------------------------------------------------------------
+   Meme-Fenster im Windows-Stil (gesperrtes Türchen)
+   Nur das rote ✕ schließt – Minimieren/Maximieren sind Deko.
+   -------------------------------------------------------------------------- */
+.meme-ebene {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--sicher-oben) + 12px) 12px calc(var(--sicher-unten) + 12px);
+  background: rgba(8, 12, 30, 0.45);
+}
+
+.meme-fenster {
+  width: min(94vw, 460px);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #1660b0;
+  background: #1c7ad1;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  transform-origin: 50% 40%;
+}
+
+.meme-titelleiste {
+  display: flex;
+  align-items: stretch;
+  height: 34px;
+  flex: none;
+  color: #fff;
+  user-select: none;
+}
+
+.meme-symbol {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 9px 8px 0 9px;
+  border: 1px solid #fff;
+  background:
+    linear-gradient(#fff 0 0) 3px 4px / 8px 1px no-repeat,
+    linear-gradient(#fff 0 0) 3px 7px / 8px 1px no-repeat,
+    linear-gradient(#fff 0 0) 3px 10px / 6px 1px no-repeat,
+    #9fd0ff;
+}
+
+.meme-titel {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.86rem;
+}
+
+.meme-knopf {
+  flex: none;
+  width: 44px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+}
+
+.meme-knopf--min::before,
+.meme-knopf--max::before {
+  content: "";
+  display: block;
+}
+
+.meme-knopf--min::before {
+  width: 10px;
+  height: 1px;
+  background: currentColor;
+}
+
+.meme-knopf--max::before {
+  width: 9px;
+  height: 9px;
+  border: 1px solid currentColor;
+}
+
+.meme-knopf--zu {
+  width: 48px;
+  padding: 0;
+  border: 0;
+  background: #c8473f;
+  cursor: pointer;
+}
+
+.meme-knopf--zu:hover,
+.meme-knopf--zu:active {
+  background: #e81123;
+}
+
+.meme-knopf--zu:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+}
+
+.meme-knopf--zu svg {
+  width: 13px;
+  height: 13px;
+}
+
+.meme-inhalt {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0 4px 4px;
+  background: #fff;
+}
+
+.meme-medium {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 10px 10px 0;
+}
+
+.meme-medium img,
+.meme-medium video {
+  display: block;
+  max-width: 100%;
+  max-height: min(58dvh, 520px);
+  object-fit: contain;
+}
+
+/* kleine Bilder nicht winzig lassen */
+.meme-medium--bild img {
+  min-width: min(100%, 260px);
+}
+
+.meme-medium iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #000;
+}
+
+.meme-text {
+  margin: 0;
+  padding: 12px 14px 14px;
+  color: #1b1b1b;
+  font-size: 1.02rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Schneesturm
+   -------------------------------------------------------------------------- */
+.sturm-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: none;
+}
+
+.sturm-canvas.an {
+  display: block;
 }
