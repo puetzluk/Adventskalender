@@ -27,6 +27,7 @@ export function mondSvg() {
     <radialGradient id="${id}-scheibe" cx=".38" cy=".36" r=".72"><stop offset="0" stop-color="#fffbea"/><stop offset=".68" stop-color="#f7e6ba"/><stop offset="1" stop-color="#e6cd94"/></radialGradient>
   </defs>
   <circle class="mond-schein" cx="60" cy="60" r="59" fill="url(#${id}-schein)"/>
+  <circle class="mond-treffer" cx="60" cy="60" r="32" fill="transparent"/>
   <circle cx="60" cy="60" r="25" fill="url(#${id}-scheibe)" stroke="#c7a66b" stroke-width="1.1"/>
   <g fill="#e4cb92" opacity=".6"><circle cx="52" cy="53" r="4.6"/><circle cx="67" cy="66" r="3.4"/><circle cx="64" cy="49" r="2"/><circle cx="53" cy="69" r="2.4"/></g>
 </svg>`;

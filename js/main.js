@@ -37,7 +37,7 @@ if (!debug) starteSchlitten(schlitten, himmel, { reduziert });
 
 // Antippen am Himmel: trifft es eine Sternschnuppe, gibt es einen kleinen Funkenregen
 welt.addEventListener('pointerdown', (e) => {
-  if (e.target.closest('button, .tuer, .rentier, .zugschnur')) return;
+  if (e.target.closest('button, .tuer, .rentier, .zugschnur, .mond')) return;
   himmel.tippen(e.clientX, e.clientY);
 });
 
@@ -69,11 +69,28 @@ for (const typ of ['pointerdown', 'touchend', 'click', 'keydown']) {
 }
 document.addEventListener('visibilitychange', () => tonPausieren(document.hidden));
 
-// --- Schneesturm (Handy schütteln) -------------------------------------------------
+// --- Schneesturm (Mond antippen) ------------------------------------------------------
 const sturm = starteSchneesturm({
   reduziert,
   istBlockiert: () => document.body.classList.contains('karte-offen') || !!document.querySelector('.codewort'),
 });
+if (!debug) {
+  mond.setAttribute('role', 'button');
+  mond.setAttribute('tabindex', '0');
+  mond.setAttribute('aria-label', 'Schneesturm');
+  mond.removeAttribute('aria-hidden');
+  mond.classList.add('mond--knopf');
+  const sturmAusloesen = () => {
+    if (sturm.ausloesen()) {
+      mond.animate([{ transform: 'scale(1)' }, { transform: 'scale(.88)' }, { transform: 'scale(1)' }],
+        { duration: reduziert ? 1 : 320, easing: 'ease-out' });
+    }
+  };
+  mond.addEventListener('click', sturmAusloesen);
+  mond.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sturmAusloesen(); }
+  });
+}
 
 // --- Inhalte ----------------------------------------------------------------------
 async function ladeInhalte() {
@@ -111,19 +128,6 @@ function zeigeTestleiste(simulierterTag, memes) {
     <button type="button" class="test-meme">Meme</button>
     <button type="button" class="test-reset">Zurücksetzen</button>`;
   leiste.querySelector('.test-sturm').addEventListener('click', () => sturm.ausloesen());
-
-  // Sensor-Anzeige (nur im Testmodus): zeigt, ob das Handy Bewegungsdaten liefert
-  // und wie stark gerade geschüttelt wird (ab 12 löst ein Ausschlag aus, zwei davon = Sturm)
-  const sensorInfo = document.createElement('div');
-  sensorInfo.className = 'test-sensor';
-  document.body.append(sensorInfo);
-  setInterval(() => {
-    const s = sturm.sensor;
-    sensorInfo.textContent = s.status === 'aktiv'
-      ? `Sensor aktiv · Schütteln: ${Math.round(s.spitze)} (Sturm ab 12)`
-      : `Sensor: ${s.status}`;
-    sensorInfo.classList.toggle('stark', s.status === 'aktiv' && s.spitze >= 12);
-  }, 250);
   leiste.querySelector('.test-meme').addEventListener('click', () => {
     if (!document.body.classList.contains('meme-offen')) memes.zeigen({ nr: 24, text: 'Noch 23 Tage bis Türchen 24! (Test)' });
   });
@@ -172,10 +176,4 @@ function zeigeTestleiste(simulierterTag, memes) {
   });
   if (testmodus) zeigeTestleiste(simulierterTag, memes);
 
-  // Schütteln: Bewegungssensoren freischalten. Android & Co. sofort; das iPhone braucht
-  // dafür ein Antippen und fragt dann einmal nach – deshalb bei jedem Tippen erneut versuchen,
-  // bis es geklappt hat (bewegungErlauben() tut danach nichts mehr).
-  sturm.bewegungErlauben();
-  window.addEventListener('click', () => sturm.bewegungErlauben(), true);
-  window.addEventListener('touchend', () => sturm.bewegungErlauben(), true);
 })();

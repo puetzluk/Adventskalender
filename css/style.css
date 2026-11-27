@@ -874,3 +874,22 @@ body.lichter-aus .mond {
 body.lichter-aus .mond-schein {
   opacity: 0;
 }
+
+/* Mond als Knopf: Antippen löst den Schneesturm aus.
+   Er liegt dafür über der Szene, aber nur die Mondscheibe nimmt Berührungen an. */
+.mond--knopf {
+  z-index: 3;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.mond--knopf .mond-treffer {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.mond--knopf:focus-visible .mond-treffer {
+  stroke: var(--gold);
+  stroke-width: 2;
+}
