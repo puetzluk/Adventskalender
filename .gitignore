@@ -1,0 +1,22 @@
+# Hilfspakete für die Werkzeuge (werden nicht veröffentlicht)
+node_modules/
+package-lock.json
+
+# Lokale Einstellungen
+.claude/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Lesbares Original der Inhalte – hochgeladen wird nur js/inhalte-verpackt.js
+js/inhalte.js
+
+# Original-Fotos (mit Standortdaten!) – hochgeladen werden nur die verkleinerten Fassungen
+bilder/tage/original/
+
+# Test-Screenshots (Etappe 5)
+screenshots/
+
+# Nur für dich am PC (enthalten u. a. das Codewort im Klartext) – nicht veröffentlichen
+ANLEITUNG.md
+werkzeuge/

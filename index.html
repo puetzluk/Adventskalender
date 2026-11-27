@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Suchmaschinen sollen die Seite nicht aufnehmen -->
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#0b1330">
+  <meta name="color-scheme" content="dark">
+  <title>Adventskalender für Henrike</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3l3.6 7.4 8.1 1.2-5.9 5.7 1.4 8.1L16 21.6l-7.2 3.8 1.4-8.1-5.9-5.7 8.1-1.2z' fill='%23ffd65a' stroke='%239a6a24' stroke-width='1.5'/%3E%3C/svg%3E">
+  <link rel="preload" as="image" href="bilder/haus.webp" type="image/webp">
+  <link rel="preload" as="font" href="fonts/great-vibes.woff2" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/tuerchen.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <!-- Die „Welt“: alles, was beim Flug durchs Türchen mitgezoomt wird -->
+  <div class="welt" id="welt">
+    <div class="himmel" aria-hidden="true"></div>
+    <!-- Mond und Schlitten werden hier per JavaScript eingefügt -->
+    <canvas class="himmel-canvas" id="himmel-canvas" aria-hidden="true"></canvas>
+
+    <main class="szene">
+      <header class="kopf">
+        <!-- Lichterkette und Zugschnur kommen per JavaScript dazu -->
+        <h1 class="titel"><span class="titel-zeile">Adventskalender</span> <span class="titel-zeile titel-zeile--fuer">für Henrike</span></h1>
+      </header>
+
+      <section class="buehne" aria-label="Adventskalenderhaus">
+        <div class="haus" id="haus">
+          <img class="haus-bild" src="bilder/haus.webp" width="627" height="893" alt="Ein verschneites Adventskalenderhaus mit 24 Türchen" draggable="false">
+          <div class="tueren"></div>
+        </div>
+      </section>
+
+      <!-- Schneeboden, Tannen und Rentiere kommen per JavaScript dazu -->
+      <div class="vordergrund"></div>
+    </main>
+  </div>
+
+  <button type="button" class="musik-knopf" id="musik-knopf" aria-pressed="true" aria-label="Musik ausschalten">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 17.5 V5.5 L19 3.5 V15.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      <ellipse cx="6.8" cy="17.6" rx="2.6" ry="2" fill="currentColor"/>
+      <ellipse cx="16.8" cy="15.6" rx="2.6" ry="2" fill="currentColor"/>
+      <path class="musik-strich" d="M4 4 L20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <!-- Hier erscheinen Licht, Umschlag und Inhaltskarten -->
+  <div class="vorhang-ebene" id="vorhang-ebene"></div>
+
+  <noscript><p class="ohne-js">Dieser Adventskalender braucht JavaScript.</p></noscript>
+</body>
+</html>

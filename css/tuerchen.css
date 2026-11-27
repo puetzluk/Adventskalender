@@ -1,0 +1,755 @@
+/* ==========================================================================
+   Türchen, Öffnen-Animation, Inhaltskarten, Umschlag, Codewort, Testmodus
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Türblatt und beleuchtete Nische
+   -------------------------------------------------------------------------- */
+.tuer {
+  perspective: 260px;
+}
+
+.nische,
+.blatt,
+.blatt-vorne,
+.blatt-hinten {
+  position: absolute;
+  inset: 0;
+  border-radius: 9% / 8%;
+}
+
+.tuer[data-form="kreis"] .nische,
+.tuer[data-form="kreis"] .blatt,
+.tuer[data-form="kreis"] .blatt-vorne,
+.tuer[data-form="kreis"] .blatt-hinten {
+  border-radius: 50%;
+}
+
+.nische {
+  z-index: 1;
+  overflow: hidden;
+  background: #2a160f;
+  box-shadow: inset 0 0 0 1px rgba(60, 25, 10, 0.7), inset 0 3px 8px rgba(0, 0, 0, 0.65);
+  container-type: size;
+}
+
+.nische-licht {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(circle at 50% 58%, #fff8da 0%, #ffd97c 30%, #f2a648 64%, #b5602c 100%);
+  box-shadow: inset 0 2px 7px rgba(90, 40, 10, 0.55);
+}
+
+.nische-zahl {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--schrift-hand);
+  font-weight: 700;
+  font-size: 14px;
+  font-size: 48cqmin;
+  line-height: 1;
+  color: transparent;
+}
+
+.tuer.offen .nische {
+  box-shadow: inset 0 0 0 1px rgba(110, 50, 15, 0.7), 0 0 10px 2px rgba(255, 190, 95, 0.5);
+}
+
+.tuer.offen .nische-licht {
+  opacity: 1;
+}
+
+.tuer.offen .nische-zahl {
+  color: rgba(122, 58, 24, 0.72);
+}
+
+.blatt {
+  z-index: 2;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.blatt[data-richtung="links"]  { transform-origin: 0 50%; }
+.blatt[data-richtung="rechts"] { transform-origin: 100% 50%; }
+.blatt[data-richtung="oben"]   { transform-origin: 50% 0; }
+
+.tuer.offen .blatt[data-richtung="links"]  { transform: rotateY(-108deg); }
+.tuer.offen .blatt[data-richtung="rechts"] { transform: rotateY(108deg); }
+.tuer.offen .blatt[data-richtung="oben"]   { transform: rotateX(108deg); }
+
+.blatt-vorne,
+.blatt-hinten {
+  overflow: hidden;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Vorderseite = genau der Ausschnitt des Hausbilds */
+.blatt-bild {
+  position: absolute;
+  background: url("../bilder/haus.webp") 0 0 / 100% 100% no-repeat;
+}
+
+/* Rückseite: helles Holz */
+.blatt-hinten {
+  transform: rotateY(180deg);
+  background: linear-gradient(135deg, #ecd5ab, #cfa877);
+  box-shadow: inset 0 0 0 1.5px #8a5a3a, inset 0 0 8px rgba(90, 50, 20, 0.35);
+}
+
+.blatt[data-richtung="oben"] .blatt-hinten {
+  transform: rotateX(180deg);
+}
+
+/* --------------------------------------------------------------------------
+   Hinweis-Blase („Noch 3 Tage!“)
+   -------------------------------------------------------------------------- */
+.hinweis {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 7px 13px 8px;
+  border: 2px solid var(--braun);
+  border-radius: 14px;
+  background: #fff8e8;
+  color: var(--braun);
+  font: 800 0.92rem/1.2 var(--schrift-text);
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  animation: blase-auf 0.35s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  transition: opacity 0.4s ease;
+}
+
+.hinweis::after {
+  content: "";
+  position: absolute;
+  left: var(--pfeil, 50%);
+  bottom: -7px;
+  width: 11px;
+  height: 11px;
+  background: #fff8e8;
+  border-right: 2px solid var(--braun);
+  border-bottom: 2px solid var(--braun);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.hinweis.weg {
+  opacity: 0;
+}
+
+@keyframes blase-auf {
+  from { opacity: 0; scale: 0.7; }
+  to   { opacity: 1; scale: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   Ebene für Licht, Umschlag und Karten
+   -------------------------------------------------------------------------- */
+.vorhang-ebene {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.vorhang {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.lichtkreis {
+  position: fixed;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, #fffbea 0%, #ffe8ab 28%, rgba(255, 200, 115, 0.9) 50%, rgba(255, 170, 80, 0) 72%);
+  opacity: 0;
+}
+
+.lichtgrund {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), #fff6da 0%, #ffdc94 30%, #f1ad5c 70%, #c4733a 100%);
+}
+
+.abdunkler {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 45%, rgba(24, 30, 70, 0.6), rgba(5, 8, 24, 0.86));
+}
+
+.karten-buehne {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--sicher-oben) + 16px) 16px calc(var(--sicher-unten) + 16px);
+}
+
+/* --------------------------------------------------------------------------
+   Inhaltskarten
+   -------------------------------------------------------------------------- */
+.karte {
+  position: relative;
+  width: min(88vw, 380px);
+  max-height: calc(var(--bildschirm-hoehe) - var(--sicher-oben) - var(--sicher-unten) - 40px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 30px 24px 26px;
+  border: 2px solid rgba(90, 51, 34, 0.85);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.75), transparent 45%),
+    radial-gradient(circle at 90% 95%, rgba(225, 196, 150, 0.35), transparent 50%),
+    linear-gradient(180deg, #fdf8ec, #f6e9cf);
+  color: #4a2a1c;
+  text-align: center;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.45);
+  transform-origin: 50% 0;
+  outline: none;
+}
+
+.karte::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1.5px dashed rgba(138, 90, 58, 0.35);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.karte-zu {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(90, 51, 34, 0.08);
+  color: var(--braun);
+  cursor: pointer;
+}
+
+.karte-zu svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.karte-zu:focus-visible {
+  outline: 2px solid var(--braun);
+  outline-offset: 1px;
+}
+
+.karte-datum {
+  margin: 0 0 10px;
+  font-family: var(--schrift-hand);
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #b0442f;
+}
+
+.karte-text {
+  margin: 0;
+  font: 600 1.08rem/1.55 var(--schrift-text);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.karte-text.handschrift,
+.handschrift {
+  font-family: var(--schrift-hand);
+  font-weight: 500;
+  font-size: 1.7rem;
+  line-height: 1.3;
+  color: #47281a;
+}
+
+.karte-ueberschrift {
+  margin: 2px 0 12px;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  font-size: 2.4rem;
+  line-height: 1.05;
+  color: var(--gruen);
+}
+
+.karte-zweig {
+  display: block;
+  width: 130px;
+  margin: 18px auto 0;
+}
+
+/* Rätsel: großes, blasses Fragezeichen im Hintergrund */
+.karte--raetsel .karte-inhalt {
+  position: relative;
+}
+
+.karte--raetsel .karte-inhalt::after {
+  content: "?";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  overflow: hidden; /* bleibt innerhalb der Karte – kein Scrollbalken */
+  font: 400 7rem/0.75 var(--schrift-titel);
+  color: rgba(47, 107, 79, 0.1);
+  pointer-events: none;
+}
+
+.karte--raetsel .karte-text {
+  font-size: 1.15rem;
+}
+
+/* Post */
+.post-symbol {
+  display: block;
+  width: 116px;
+  margin: 2px auto 8px;
+}
+
+.karte--post .karte-ueberschrift {
+  font-size: 2.1rem;
+  color: #b0442f;
+}
+
+/* Foto: Polaroid statt Papierkarte */
+.karte--foto,
+.karte--gutschein {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.karte--foto::before,
+.karte--gutschein::before,
+.karte--foto .karte-datum,
+.karte--gutschein .karte-datum {
+  display: none;
+}
+
+.polaroid {
+  position: relative;
+  margin: 0;
+  padding: 14px 14px 16px;
+  border-radius: 3px;
+  background: #fffdf8;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+  transform: rotate(-1.8deg);
+}
+
+.polaroid-klebe {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  width: 92px;
+  height: 26px;
+  background: rgba(238, 222, 186, 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transform: translateX(-50%) rotate(3deg);
+}
+
+.polaroid-bild {
+  position: relative;
+  aspect-ratio: 1;
+  max-height: calc(var(--bildschirm-hoehe) - 230px);
+  overflow: hidden;
+  background: #e9e4da;
+}
+
+.polaroid-bild img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.polaroid-bild.fehlt::after {
+  content: "Foto folgt";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 500 1.6rem var(--schrift-hand);
+  color: #8a7a6a;
+}
+
+.polaroid-bild.fehlt img {
+  display: none;
+}
+
+.polaroid figcaption {
+  margin-top: 12px;
+  font-size: 1.55rem;
+  color: #3a2a22;
+  white-space: pre-line;
+}
+
+.karte--foto .karte-zu {
+  top: -16px;
+  right: -12px;
+  background: #fffdf8;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Gutschein: Ticket mit Kerben und gestricheltem Rand */
+.ticket {
+  position: relative;
+  padding: 30px 30px 24px;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.18), transparent 45%),
+    linear-gradient(135deg, #cf4c3e, #a5342a);
+  color: var(--creme);
+  text-align: center;
+  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.45));
+  -webkit-mask: radial-gradient(circle at 0 50%, transparent 15px, #000 15.5px) left / 51% 100% no-repeat,
+                radial-gradient(circle at 100% 50%, transparent 15px, #000 15.5px) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle at 0 50%, transparent 15px, #000 15.5px) left / 51% 100% no-repeat,
+        radial-gradient(circle at 100% 50%, transparent 15px, #000 15.5px) right / 51% 100% no-repeat;
+}
+
+.ticket::before {
+  content: "";
+  position: absolute;
+  inset: 10px 22px;
+  border: 2px dashed rgba(251, 241, 220, 0.7);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.ticket-marke {
+  margin: 0;
+  font: 800 0.78rem/1 var(--schrift-text);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.ticket-titel {
+  margin: 8px 0 10px;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  font-size: clamp(2.1rem, 10.5vw, 2.7rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  color: #fff4d6;
+}
+
+.ticket-text {
+  margin: 0;
+  font: 600 1.05rem/1.5 var(--schrift-text);
+  white-space: pre-line;
+}
+
+.ticket-fuss {
+  margin: 16px 0 0;
+  font: 800 0.72rem/1 var(--schrift-text);
+  letter-spacing: 0.12em;
+  opacity: 0.8;
+}
+
+/* Schließen-Knopf sitzt auf der Ecke (wie beim Polaroid), damit er den Titel nicht überdeckt */
+.karte--gutschein .karte-zu {
+  top: -16px;
+  right: -12px;
+  background: #fffdf8;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   Umschlag (Variante „Brief“)
+   -------------------------------------------------------------------------- */
+.umschlag {
+  --b: min(78vw, 330px);
+  position: fixed;
+  left: 50%;
+  top: 52%;
+  width: var(--b);
+  height: calc(var(--b) * 0.64);
+  margin-left: calc(var(--b) * -0.5);
+  margin-top: calc(var(--b) * -0.32);
+  perspective: 900px;
+  opacity: 0;
+}
+
+.umschlag-rueck {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 1.5px solid #b8936a;
+  border-radius: 6px;
+  background: #e6cda2;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+}
+
+.umschlag-schacht {
+  position: absolute;
+  z-index: 2;
+  left: 6%;
+  right: 6%;
+  bottom: 4%;
+  top: -220%;
+  overflow: hidden;
+}
+
+.umschlag-papier {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--b) * 0.64 * 0.9);
+  padding-top: 18px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fffaf0, #f6ead2);
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.umschlag-papier span {
+  display: block;
+  height: 2px;
+  margin: 12px 14%;
+  border-radius: 2px;
+  background: rgba(138, 90, 58, 0.25);
+}
+
+.umschlag-vorne {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.umschlag-lasche {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 62%;
+  transform-origin: 50% 0;
+  -webkit-clip-path: polygon(0 0, 100% 0, 50% 100%);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: linear-gradient(180deg, #f2dfba, #e0c294);
+}
+
+.umschlag-lasche.offen {
+  z-index: 1;
+  background: linear-gradient(0deg, #e9d3a8, #d6b887);
+}
+
+.umschlag-siegel {
+  position: absolute;
+  left: 50%;
+  top: 74%;
+  width: 17%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 38% 35%, #e0705c, #b23a2c 60%, #8c2a20);
+  box-shadow: inset 0 0 0 2px rgba(120, 30, 20, 0.5);
+}
+
+.umschlag-lasche.offen .umschlag-siegel {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   Codewort
+   -------------------------------------------------------------------------- */
+.codewort {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--sicher-oben) + 16px) 16px calc(var(--sicher-unten) + 16px);
+  background: radial-gradient(ellipse at 50% 40%, rgba(22, 36, 90, 0.5), rgba(6, 10, 28, 0.88));
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: einblenden 0.6s ease both;
+}
+
+.codewort.geschafft {
+  animation: ausblenden 0.9s ease 0.15s both;
+}
+
+.codewort.geschafft .codewort-schild {
+  animation: schild-weg 0.9s ease 0.15s both;
+}
+
+@keyframes einblenden { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ausblenden { from { opacity: 1; } to { opacity: 0; } }
+@keyframes schild-weg { to { transform: translateY(-24px) scale(1.06); } }
+
+.codewort-schild {
+  position: relative;
+  width: min(88vw, 340px);
+  padding: 14px 22px 24px;
+  border: 2px solid var(--braun);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.8), transparent 50%),
+    linear-gradient(180deg, #fdf6e6, #f2e0bd);
+  color: #4a2a1c;
+  text-align: center;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.5);
+}
+
+.codewort-schild::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1.5px dashed rgba(138, 90, 58, 0.4);
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+.codewort-kranz {
+  display: block;
+  width: 108px;
+  margin: 0 auto -6px;
+}
+
+.codewort-titel {
+  margin: 0;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  font-size: 2.3rem;
+  line-height: 1.1;
+  color: #b0442f;
+}
+
+.codewort-text {
+  margin: 2px 0 14px;
+  font: 700 1rem/1.4 var(--schrift-text);
+}
+
+.codewort-punkte {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  min-height: 16px;
+  margin-bottom: 18px;
+}
+
+.codewort-punkte span {
+  width: 15px;
+  height: 15px;
+  border: 2px solid #8a5a3a;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.codewort-punkte span.voll {
+  background: var(--rot);
+  border-color: #7a1f16;
+}
+
+.codewort-punkte.richtig span.voll {
+  background: #3f8a5f;
+  border-color: #2b5c44;
+}
+
+.codewort-punkte.falsch span.voll {
+  background: #e0605a;
+}
+
+.codewort-tasten {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 10px;
+  justify-items: center;
+}
+
+.codewort-tasten button {
+  width: 62px;
+  height: 62px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid #8a5a3a;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #efd9b0);
+  box-shadow: 0 3px 0 #8a5a3a;
+  color: #4a2a1c;
+  font: 800 1.55rem/1 var(--schrift-text);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.codewort-tasten button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #8a5a3a;
+}
+
+.codewort-tasten button:focus-visible {
+  outline: 2px solid var(--rot);
+  outline-offset: 2px;
+}
+
+.codewort-tasten svg {
+  width: 26px;
+  height: 26px;
+}
+
+.codewort-tasten .taste-ok {
+  border-color: #2b5c44;
+  background: radial-gradient(circle at 35% 30%, #86cc9d, #3f8a5f);
+  box-shadow: 0 3px 0 #2b5c44;
+  color: #fff;
+}
+
+.codewort-tasten .taste-ok:active {
+  box-shadow: 0 1px 0 #2b5c44;
+}
+
+/* --------------------------------------------------------------------------
+   Testmodus
+   -------------------------------------------------------------------------- */
+.testleiste {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: calc(var(--sicher-unten) + 8px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 16px);
+  padding: 5px 5px 5px 14px;
+  border: 1px solid rgba(246, 200, 106, 0.5);
+  border-radius: 999px;
+  background: rgba(10, 14, 32, 0.88);
+  color: var(--creme);
+  font: 800 0.75rem/1.2 var(--schrift-text);
+  white-space: nowrap;
+}
+
+.testleiste button {
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--rot);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}

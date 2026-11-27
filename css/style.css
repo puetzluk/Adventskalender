@@ -1,0 +1,826 @@
+/* ==========================================================================
+   Adventskalender – Szene (Himmel, Haus, Boden, Bäume, Rentiere, Lichterkette)
+   Mobile first (Handy hochkant), Safe Areas fürs iPhone, kein seitliches Scrollen.
+   ========================================================================== */
+
+/* --- Schriften (lokal, nicht von Google-Servern) --------------------------- */
+@font-face {
+  font-family: "Great Vibes";
+  src: url("../fonts/great-vibes.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Dancing Script";
+  src: url("../fonts/dancing-script-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Dancing Script";
+  src: url("../fonts/dancing-script-700.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nunito";
+  src: url("../fonts/nunito-600.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nunito";
+  src: url("../fonts/nunito-800.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+}
+
+:root {
+  /* Farben: warm, Kinderbuch, braune statt schwarze Konturen */
+  --nacht-1: #0b1330;
+  --nacht-2: #16245a;
+  --nacht-3: #2a3775;
+  --horizont: #4b4a8a;
+  --braun: #5a3322;
+  --creme: #fbf1dc;
+  --gold: #f6c86a;
+  --rot: #c8463a;
+  --gruen: #2f6b4f;
+
+  --schrift-titel: "Great Vibes", "Segoe Script", cursive;
+  --schrift-hand: "Dancing Script", "Segoe Script", cursive;
+  --schrift-text: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Aufteilung des Bildschirms */
+  --sicher-oben: env(safe-area-inset-top, 0px);
+  --sicher-unten: env(safe-area-inset-bottom, 0px);
+  --sicher-links: env(safe-area-inset-left, 0px);
+  --sicher-rechts: env(safe-area-inset-right, 0px);
+  --kopf-hoehe: clamp(128px, 18vh, 190px);
+  --fuss-hoehe: clamp(70px, 11vh, 150px);
+  --bildschirm-hoehe: 100vh;
+
+  /* Seitenverhältnis des Hausbilds (wird per JavaScript aus js/tueren.js gesetzt) */
+  --haus-verhaeltnis: 0.7021;
+  --verfuegbar: calc(var(--bildschirm-hoehe) - var(--kopf-hoehe) - var(--fuss-hoehe) - var(--sicher-oben) - var(--sicher-unten) + 8px);
+  --haus-breite: min(calc(100vw - 12px), 640px, calc(var(--verfuegbar) * var(--haus-verhaeltnis)));
+  --haus-hoehe: calc(var(--haus-breite) / var(--haus-verhaeltnis));
+}
+
+@supports (height: 100dvh) {
+  :root { --bildschirm-hoehe: 100dvh; }
+}
+
+/* Niedrige Bildschirme (z. B. iPhone in Safari mit Adressleiste, ca. 390 × 660):
+   Kopf und Fuß werden schmaler, damit das Haus groß genug bleibt (Tippflächen ≥ 44 px). */
+@media (max-height: 760px) {
+  :root {
+    --kopf-hoehe: clamp(88px, 15.5vh, 128px);
+    --fuss-hoehe: clamp(40px, 7.5vh, 70px);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--nacht-1);
+  color: var(--creme);
+  font-family: var(--schrift-text);
+  overflow: hidden;              /* kein Scrollen – die Szene passt immer auf den Bildschirm */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* --------------------------------------------------------------------------
+   Welt (wird beim „Flug durchs Türchen“ gezoomt)
+   -------------------------------------------------------------------------- */
+.welt {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.himmel {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(120% 55% at 50% 100%, rgba(150, 124, 196, 0.38), transparent 62%),
+    radial-gradient(90% 40% at 15% 18%, rgba(70, 90, 170, 0.25), transparent 70%),
+    linear-gradient(180deg, var(--nacht-1) 0%, var(--nacht-2) 42%, var(--nacht-3) 76%, var(--horizont) 100%);
+}
+
+.himmel-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.mond {
+  position: absolute;
+  z-index: 0;
+  width: clamp(84px, 24vw, 140px);
+  height: auto;
+  left: max(4px, calc(50% - var(--haus-breite) * 0.5 - 2px));
+  top: calc(var(--sicher-oben) + var(--kopf-hoehe) - 10px);
+  pointer-events: none;
+}
+
+.schlitten {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  top: calc(var(--sicher-oben) + var(--kopf-hoehe) - 4px);
+  width: clamp(150px, 42vw, 240px);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.schlitten svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.schlitten-wippe {
+  animation: wippen 2.4s ease-in-out infinite alternate;
+}
+
+.flug-rentier {
+  animation: galopp 0.9s ease-in-out infinite alternate;
+  animation-delay: var(--v, 0s);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes wippen {
+  from { transform: translateY(-4px) rotate(-1.5deg); }
+  to   { transform: translateY(5px) rotate(1.5deg); }
+}
+
+@keyframes galopp {
+  from { transform: translateY(-1.5px) rotate(-3deg); }
+  to   { transform: translateY(1.5px) rotate(3deg); }
+}
+
+/* --------------------------------------------------------------------------
+   Szene: Kopf (Überschrift) / Bühne (Haus) / Vordergrund (Boden)
+   -------------------------------------------------------------------------- */
+.szene {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: var(--bildschirm-hoehe);
+  display: grid;
+  grid-template-rows: var(--kopf-hoehe) 1fr var(--fuss-hoehe);
+  padding: var(--sicher-oben) var(--sicher-rechts) var(--sicher-unten) var(--sicher-links);
+}
+
+.kopf {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 16px 2px;
+}
+
+.titel {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  line-height: 0.98;
+  text-align: center;
+  color: #f8dc9a;
+  filter: drop-shadow(0 2px 8px rgba(255, 196, 102, 0.28));
+  transition: filter 0.6s ease;
+}
+
+.titel-zeile {
+  display: block;
+  font-size: clamp(2.6rem, 12.6vw, 4.6rem);
+  padding: 0 0.12em;
+  background: linear-gradient(180deg, #fff7df 10%, #f8d98f 55%, #e7ad55 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.titel-zeile--fuer {
+  font-size: clamp(1.9rem, 9vw, 3.3rem);
+  margin-top: -0.06em;
+}
+
+/* Auf niedrigen Bildschirmen richtet sich die Titelgröße auch nach der Höhe */
+@media (max-height: 760px) {
+  .titel-zeile        { font-size: clamp(2rem, min(12.6vw, 6.4vh), 4.6rem); }
+  .titel-zeile--fuer  { font-size: clamp(1.45rem, min(9vw, 4.6vh), 3.3rem); }
+}
+
+body.lichter-an .titel {
+  filter: drop-shadow(0 2px 10px rgba(255, 196, 102, 0.45));
+}
+
+.buehne {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 0;
+}
+
+/* Kein eigener Stapelkontext: die Bodenteile liegen teils hinter, teils vor dem Haus */
+.vordergrund {
+  position: relative;
+}
+
+/* --------------------------------------------------------------------------
+   Lichterkette mit Zugschnur
+   -------------------------------------------------------------------------- */
+.lichterkette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.lichterkette svg {
+  display: block;
+  overflow: visible;
+}
+
+.birne-glas {
+  fill: var(--aus);
+  stroke: rgba(70, 35, 20, 0.6);
+  stroke-width: 0.7;
+  transition: fill 0.45s ease;
+}
+
+.birne-schein {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.lichterkette.an .birne-glas {
+  fill: var(--an);
+}
+
+.lichterkette.an .birne-schein {
+  opacity: 1;
+  animation: birnen-funkeln 3.2s ease-in-out infinite;
+  animation-delay: var(--v, 0s);
+}
+
+@keyframes birnen-funkeln {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+.zugschnur {
+  position: absolute;
+  z-index: 6;
+  top: 6px;
+  right: 2px;
+  width: 44px;
+  height: 140px;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+
+.zugschnur:active {
+  cursor: grabbing;
+}
+
+.zugschnur:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+
+.zugschnur svg {
+  display: block;
+  width: 44px;
+  height: 140px;
+  overflow: visible;
+}
+
+/* --------------------------------------------------------------------------
+   Das Haus
+   -------------------------------------------------------------------------- */
+.haus {
+  position: relative;
+  width: var(--haus-breite);
+  aspect-ratio: 627 / 893;
+  margin-bottom: -10px; /* Haus steht ein wenig im Schnee */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.haus-bild {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tueren {
+  position: absolute;
+  inset: 0;
+}
+
+.tuer {
+  position: absolute;
+}
+
+/* Unsichtbare Tippfläche (kann größer als das Türchen sein) */
+.tippflaeche {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tuer[data-form="kreis"] .tippflaeche {
+  border-radius: 50%;
+}
+
+.tippflaeche:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Boden, Bäume, Rentiere
+   -------------------------------------------------------------------------- */
+.boden-hinten,
+.boden-vorne {
+  position: absolute;
+  left: calc(-1 * var(--sicher-links));
+  right: calc(-1 * var(--sicher-rechts));
+  bottom: calc(-1 * var(--sicher-unten));
+  pointer-events: none;
+}
+
+.boden-hinten {
+  z-index: 1;
+  top: calc(var(--haus-hoehe) * -0.12);
+}
+
+.boden-vorne {
+  z-index: 3;
+  top: -18px;
+}
+
+.boden-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Glitzerpünktchen im Schnee (als Hintergrund, damit sie rund bleiben) */
+.boden-glitzer {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 8% 62%, #fff 0 1.3px, transparent 2px),
+    radial-gradient(circle at 17% 84%, #dfe9ff 0 1px, transparent 1.8px),
+    radial-gradient(circle at 26% 70%, #fff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 34% 40%, #fff 0 1px, transparent 1.7px),
+    radial-gradient(circle at 41% 78%, #fff 0 1.4px, transparent 2.1px),
+    radial-gradient(circle at 49% 58%, #e4ecff 0 1px, transparent 1.7px),
+    radial-gradient(circle at 57% 86%, #fff 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 63% 46%, #fff 0 1px, transparent 1.7px),
+    radial-gradient(circle at 71% 72%, #fff 0 1.3px, transparent 2px),
+    radial-gradient(circle at 79% 60%, #dfe9ff 0 1px, transparent 1.8px),
+    radial-gradient(circle at 87% 82%, #fff 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 94% 66%, #fff 0 1px, transparent 1.7px),
+    /* gemalte, bläuliche Sprenkel wie im Schnee am Hausfuß (versetzte Raster wirken unregelmäßig) */
+    radial-gradient(ellipse 3px 2px at 30% 40%, rgba(160, 176, 214, 0.45), transparent 100%),
+    radial-gradient(ellipse 2px 1.5px at 70% 75%, rgba(160, 176, 214, 0.5), transparent 100%),
+    radial-gradient(ellipse 4px 2.5px at 55% 20%, rgba(185, 198, 228, 0.4), transparent 100%),
+    radial-gradient(circle 1.4px at 20% 80%, rgba(255, 255, 255, 0.95), transparent 100%);
+  background-size:
+    100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%,
+    100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%,
+    37px 29px, 53px 41px, 71px 47px, 43px 31px;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 18px, 11px 30px, 23px 24px, 7px 8px;
+  /* oben ausblenden, damit die Sprenkel nicht vor dem Haus schweben */
+  -webkit-mask: linear-gradient(180deg, transparent 0%, transparent 14%, #000 34%);
+  mask: linear-gradient(180deg, transparent 0%, transparent 14%, #000 34%);
+  opacity: 0.95;
+}
+
+.baeume {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.baum {
+  --h: calc(var(--haus-hoehe) * 0.4);
+  --b: calc(var(--h) * 0.75);
+  position: absolute;
+  bottom: calc(100% - 12px);
+  width: var(--b);
+  height: var(--h);
+}
+
+.baum--links-innen   { left:  calc(50% - var(--haus-breite) * 0.5 - var(--b) * 0.3); }
+.baum--rechts-innen  { right: calc(50% - var(--haus-breite) * 0.5 - var(--b) * 0.3); --h: calc(var(--haus-hoehe) * 0.36); }
+.baum--links-mitte   { left:  calc(50% - var(--haus-breite) * 0.5 - var(--b) * 1.15); --h: calc(var(--haus-hoehe) * 0.3); }
+.baum--rechts-mitte  { right: calc(50% - var(--haus-breite) * 0.5 - var(--b) * 1.2); --h: calc(var(--haus-hoehe) * 0.46); }
+.baum--links-aussen  { left:  calc(50% - var(--haus-breite) * 0.5 - var(--b) * 2.1); --h: calc(var(--haus-hoehe) * 0.5); }
+.baum--rechts-aussen { right: calc(50% - var(--haus-breite) * 0.5 - var(--b) * 2.2); --h: calc(var(--haus-hoehe) * 0.34); }
+
+.baum-licht .glanz {
+  animation: funkeln 2.6s ease-in-out infinite;
+  animation-delay: var(--v, 0s);
+}
+
+.baum-stern {
+  animation: stern-leuchten 3.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes funkeln {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+@keyframes stern-leuchten {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.8; transform: scale(0.94); }
+}
+
+.rentiere {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.rentier {
+  --rand: max(0px, calc(50% - var(--haus-breite) * 0.5 - 6px));
+  position: absolute;
+  bottom: 6px;
+  aspect-ratio: 130 / 108;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+  transform-origin: 50% 100%;
+}
+
+.rentier svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rentier--gross {
+  left: var(--rand);
+  height: calc(var(--fuss-hoehe) * 0.88);
+  --blinzeln: 4.6s;
+  --nicken: 7.4s;
+}
+
+.rentier--kalb {
+  left: calc(var(--rand) + var(--fuss-hoehe) * 0.92);
+  height: calc(var(--fuss-hoehe) * 0.6);
+  --blinzeln: 3.8s;
+  --nicken: 5.9s;
+}
+
+.rentier--nase {
+  right: var(--rand);
+  height: calc(var(--fuss-hoehe) * 0.88);
+  transform: scaleX(-1); /* schaut zur Mitte */
+  --blinzeln: 5.3s;
+  --nicken: 8.3s;
+}
+
+.rentier-auge {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blinzeln var(--blinzeln, 5s) infinite;
+}
+
+.rentier-kopf {
+  transform-origin: 96px 38px;
+  animation: nicken var(--nicken, 7s) ease-in-out infinite;
+}
+
+.nasenschein {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nasen-puls 2.4s ease-in-out infinite;
+}
+
+.nase--rot {
+  animation: nasen-glanz 2.4s ease-in-out infinite;
+}
+
+@keyframes blinzeln {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95%           { transform: scaleY(0.12); }
+}
+
+@keyframes nicken {
+  0%, 62%, 100% { transform: rotate(0deg); }
+  72%           { transform: rotate(-7deg); }
+  82%           { transform: rotate(3deg); }
+  90%           { transform: rotate(-1deg); }
+}
+
+@keyframes nasen-puls {
+  0%, 100% { opacity: 0.45; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1.15); }
+}
+
+@keyframes nasen-glanz {
+  0%, 100% { filter: brightness(0.95); }
+  50%      { filter: brightness(1.25); }
+}
+
+/* --------------------------------------------------------------------------
+   Musik-Knopf
+   -------------------------------------------------------------------------- */
+.musik-knopf {
+  position: fixed;
+  z-index: 20;
+  right: calc(var(--sicher-rechts) + 8px);
+  /* mindestens unterhalb der Zugschnur (6 + 140 px), auch wenn der Kopf auf niedrigen Bildschirmen schmaler ist */
+  top: calc(var(--sicher-oben) + max(var(--kopf-hoehe) + 8px, 152px));
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid rgba(246, 200, 106, 0.55);
+  background: rgba(14, 22, 54, 0.55);
+  color: #f6d58a;
+  cursor: pointer;
+  transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.musik-knopf svg {
+  width: 22px;
+  height: 22px;
+}
+
+.musik-knopf .musik-strich {
+  opacity: 0;
+}
+
+.musik-knopf.aus {
+  color: rgba(246, 213, 138, 0.55);
+}
+
+.musik-knopf.aus .musik-strich {
+  opacity: 1;
+}
+
+.musik-knopf:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+body.karte-offen .musik-knopf {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ohne-js {
+  position: fixed;
+  inset: auto 16px 16px;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Handy quer gehalten: freundlicher Hinweis statt eines winzigen Hauses
+   -------------------------------------------------------------------------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  body::after {
+    content: "📱\A Bitte halte dein Handy hochkant";
+    white-space: pre;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    padding: 16px;
+    background: radial-gradient(ellipse at 50% 40%, #233a7a, #0d1638 70%);
+    color: #f8dc9a;
+    font: 800 1.3rem/2 var(--schrift-text);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Weniger Bewegung gewünscht: Dauer-Animationen ruhen
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .rentier-auge,
+  .rentier-kopf,
+  .nasenschein,
+  .nase--rot,
+  .baum-licht .glanz,
+  .baum-stern,
+  .lichterkette.an .birne-schein,
+  .schlitten-wippe,
+  .flug-rentier {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Debug-Ansicht (?debug)
+   -------------------------------------------------------------------------- */
+.dbg-ebene {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.dbg-rahmen {
+  position: absolute;
+  border: 2px solid #ffe066;
+  box-shadow: 0 0 0 1px rgba(40, 20, 0, 0.55), inset 0 0 0 1px rgba(40, 20, 0, 0.45);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: move;
+}
+
+.dbg-rahmen[data-form="kreis"] {
+  border-radius: 50%;
+}
+
+.dbg-rahmen.gewaehlt {
+  border-color: #5ef2ff;
+  background: rgba(94, 242, 255, 0.12);
+  z-index: 2;
+}
+
+.dbg-nummer {
+  position: absolute;
+  left: -6px;
+  top: -9px;
+  min-width: 15px;
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: #ffe066;
+  color: #2b1a00;
+  font: 700 10px/1.1 system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+.dbg-rahmen.gewaehlt .dbg-nummer {
+  background: #5ef2ff;
+}
+
+.dbg-griff {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: #ffe066;
+  border: 1px solid rgba(40, 20, 0, 0.6);
+  cursor: nwse-resize;
+}
+
+.dbg-griff::before {
+  /* größere unsichtbare Greiffläche für Finger – nur nach außen, damit auch
+     kleine Türchen (z. B. die 4) in der Mitte noch verschiebbar bleiben */
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  right: -14px;
+  bottom: -14px;
+}
+
+.dbg-rahmen.gewaehlt .dbg-griff {
+  background: #5ef2ff;
+}
+
+.dbg-tipp {
+  position: absolute;
+  border: 1.5px dashed rgba(120, 255, 160, 0.95);
+  border-radius: 4px;
+}
+
+.dbg-tipp.zu-klein {
+  border-color: #ff5a5a;
+  background: rgba(255, 90, 90, 0.15);
+}
+
+body.dbg-blass .haus-bild {
+  opacity: 0.45;
+}
+
+.dbg-feld {
+  position: fixed;
+  z-index: 1000;
+  top: calc(var(--sicher-oben) + 6px);
+  left: calc(var(--sicher-links) + 6px);
+  right: calc(var(--sicher-rechts) + 6px);
+  max-height: 40vh;
+  overflow: auto;
+  padding: 6px 10px 8px;
+  border-radius: 10px;
+  background: rgba(8, 12, 28, 0.9);
+  color: #eef2ff;
+  font: 12px/1.35 system-ui, sans-serif;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+}
+
+.dbg-kopfzeile {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.dbg-kopfzeile strong {
+  margin-right: auto;
+}
+
+.dbg-feld button {
+  min-height: 30px;
+  padding: 4px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dbg-feld.zu .dbg-inhalt {
+  display: none;
+}
+
+.dbg-inhalt p {
+  margin: 5px 0 0;
+}
+
+.dbg-hinweis {
+  opacity: 0.75;
+}
+
+.dbg-warnung {
+  color: #ff9a9a;
+}
+
+.dbg-warnung.ok {
+  color: #9dffb8;
+}
+
+.dbg-ausgabe {
+  width: 100%;
+  height: 130px;
+  margin-top: 6px;
+  font: 11px/1.3 ui-monospace, Consolas, monospace;
+  background: #0f1530;
+  color: #dfe6ff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+}
